@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  petition:
+    build: .
+    container_name: cyberstorm-petition
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - PETITION_TOKEN=${PETITION_TOKEN}
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
+      - SESSION_SECRET=${SESSION_SECRET}
+    volumes:
+      - ./data:/app/data
+    networks:
+      - root_default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=root_default"
+      # ── Petition form ──
+      - "traefik.http.routers.cs-petition.rule=Host(`petition.srv1561000.hstgr.cloud`)"
+      - "traefik.http.routers.cs-petition.entrypoints=websecure"
+      - "traefik.http.routers.cs-petition.tls=true"
+      - "traefik.http.routers.cs-petition.tls.certresolver=mytlschallenge"
+      - "traefik.http.routers.cs-petition.service=cs-svc"
+      # ── Dashboard ──
+      - "traefik.http.routers.cs-dashboard.rule=Host(`cyberstorm.srv1561000.hstgr.cloud`)"
+      - "traefik.http.routers.cs-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.cs-dashboard.tls=true"
+      - "traefik.http.routers.cs-dashboard.tls.certresolver=mytlschallenge"
+      - "traefik.http.routers.cs-dashboard.service=cs-svc"
+      # ── Service ──
+      - "traefik.http.services.cs-svc.loadbalancer.server.port=3000"
+
+networks:
+  root_default:
+    external: true
