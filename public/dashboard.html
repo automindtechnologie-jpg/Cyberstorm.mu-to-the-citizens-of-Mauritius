@@ -154,6 +154,34 @@ body{background:var(--surface);font-family:var(--font-b);color:var(--ink);min-he
 .toast.error{border-left-color:var(--error)}
 @media(max-width:900px){.stats-row{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:640px){.header{padding:0 16px}.header-sub,.live-label{display:none}.stats-wrap,.main{padding-left:16px;padding-right:16px}.stats-row{grid-template-columns:repeat(2,1fr);gap:10px}.stat-value{font-size:30px}.sig-card{flex-wrap:wrap}.sig-meta{flex-direction:row;align-items:center;width:100%}.fiche-grid{grid-template-columns:1fr}.modal-header,.modal-body,.modal-footer{padding-left:18px;padding-right:18px}}
+
+/* LOGS */
+.log-tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px}
+.log-tab{flex:1;padding:8px 14px;background:transparent;border:none;font-family:var(--font-b);font-size:12px;font-weight:500;color:var(--ink-muted);cursor:pointer;border-right:1px solid var(--border);transition:all .2s}
+.log-tab:last-child{border-right:none}
+.log-tab.active{background:var(--ink);color:#fff}
+.log-list{display:flex;flex-direction:column;gap:6px;max-height:460px;overflow-y:auto;padding-right:2px}
+.log-entry{background:var(--card-2);border:1px solid var(--border-light);border-radius:var(--radius);padding:10px 14px;display:flex;align-items:flex-start;gap:10px;font-size:12px}
+.log-entry.error{border-left:3px solid var(--error);background:var(--error-bg)}
+.log-entry.warn{border-left:3px solid var(--gold);background:#FFFBF0}
+.log-entry.info{border-left:3px solid var(--success)}
+.log-level{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:4px;flex-shrink:0;margin-top:1px}
+.log-level.error{background:var(--error-bg);color:var(--error)}
+.log-level.warn{background:#FEF3C7;color:#92400E}
+.log-level.info{background:var(--success-bg);color:var(--success)}
+.log-body{flex:1;min-width:0}
+.log-msg{font-weight:600;color:var(--ink);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.log-detail{color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.log-ip{color:var(--ink-muted);font-size:10px;margin-top:2px}
+.log-time{color:var(--ink-muted);font-size:10px;flex-shrink:0;white-space:nowrap;text-align:right}
+.log-copy-btn{width:26px;height:26px;border:1px solid var(--border);background:transparent;border-radius:5px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;color:var(--ink-muted)}
+.log-copy-btn:hover{border-color:var(--blue-light);color:var(--blue-light)}
+.log-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap}
+.log-count-label{font-size:12px;color:var(--ink-muted)}
+.log-empty{text-align:center;padding:48px 24px;color:var(--ink-muted)}
+.log-empty-icon{font-size:36px;margin-bottom:12px;opacity:.3}
+.btn-clear-logs{height:34px;padding:0 14px;background:transparent;color:var(--error);border:1px solid rgba(192,57,43,.3);border-radius:var(--radius);font-family:var(--font-b);font-size:11px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-clear-logs:hover{background:var(--error-bg);border-color:var(--error)}
 </style>
 </head>
 <body>
@@ -184,6 +212,7 @@ body{background:var(--surface);font-family:var(--font-b);color:var(--ink);min-he
     <button class="btn-h" onclick="openReport()">⬇ Report</button>
     <button class="btn-h" onclick="exportCSV()">↗ Export CSV</button>
     <button class="btn-h primary" onclick="openImport()">＋ Import</button>
+    <button class="btn-h" onclick="openLogs()">📋 Logs</button>
     <button class="btn-h danger" onclick="doLogout()">Logout</button>
   </div>
 </header>
@@ -264,6 +293,37 @@ body{background:var(--surface);font-family:var(--font-b);color:var(--ink);min-he
     <div class="modal-header"><span class="modal-title" id="fiche-title">Profile</span><button class="modal-close" onclick="closeModal('modal-fiche')">✕</button></div>
     <div class="modal-body" id="fiche-body"></div>
     <div class="modal-footer"><button class="btn-danger" id="fiche-delete-btn">Delete Entry</button><button class="btn-secondary" onclick="closeModal('modal-fiche')">Close</button></div>
+  </div>
+</div>
+
+
+<!-- LOGS MODAL -->
+<div class="modal-overlay" id="modal-logs">
+  <div class="modal lg">
+    <div class="modal-header">
+      <span class="modal-title">System Logs</span>
+      <button class="modal-close" onclick="closeModal('modal-logs')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="log-tabs">
+        <button class="log-tab active" id="ltab-form" onclick="switchLogTab('form')">&#x1F4DD; Form Logs</button>
+        <button class="log-tab" id="ltab-dashboard" onclick="switchLogTab('dashboard')">&#x1F510; Dashboard Logs</button>
+      </div>
+      <div class="log-toolbar">
+        <span class="log-count-label" id="log-count-label">Loading...</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn-clear-logs" onclick="clearLogs()">&#x1F5D1; Clear</button>
+          <button class="btn-secondary" style="height:34px;padding:0 14px;font-size:12px" onclick="loadLogs()">&#x21BA; Refresh</button>
+          <button class="btn-copy" id="btn-copy-all-logs" onclick="copyAllLogs()">Copy All</button>
+        </div>
+      </div>
+      <div class="log-list" id="log-list">
+        <div class="log-empty"><div class="log-empty-icon">&#x1F5D2;</div>Loading logs...</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-logs')">Close</button>
+    </div>
   </div>
 </div>
 
@@ -488,6 +548,88 @@ function showToast(msg,type){var t=document.getElementById('toast');t.textConten
       .catch(function(){});
   }
 })();
+
+
+var currentLogTab='form';
+var currentLogs=[];
+
+function openLogs(){openModal('modal-logs');loadLogs();}
+
+function switchLogTab(tab){
+  currentLogTab=tab;
+  document.getElementById('ltab-form').classList.toggle('active',tab==='form');
+  document.getElementById('ltab-dashboard').classList.toggle('active',tab==='dashboard');
+  loadLogs();
+}
+
+function loadLogs(){
+  document.getElementById('log-list').innerHTML='<div class="log-empty"><div class="log-empty-icon">&#x23F3;</div>Loading...</div>';
+  fetch('/api/logs?source='+currentLogTab+'&limit=300',{headers:apiHeaders()})
+    .then(function(r){if(r.status===401){doLogout();}return r.json();})
+    .then(function(data){
+      currentLogs=Array.isArray(data)?data:[];
+      renderLogs();
+    })
+    .catch(function(){
+      document.getElementById('log-list').innerHTML='<div class="log-empty" style="color:var(--error)">Error loading logs</div>';
+    });
+}
+
+function renderLogs(){
+  var list=document.getElementById('log-list');
+  var countEl=document.getElementById('log-count-label');
+  var src=currentLogTab==='form'?'Form':'Dashboard';
+  countEl.textContent=currentLogs.length+' '+src+' log'+(currentLogs.length!==1?'s':'');
+  if(currentLogs.length===0){
+    list.innerHTML='<div class="log-empty"><div class="log-empty-icon">&#x1F5D2;</div>No '+src.toLowerCase()+' logs yet</div>';
+    return;
+  }
+  list.innerHTML=currentLogs.map(function(log,i){
+    var lvl=(log.level||'info').toLowerCase();
+    var dt=log.created_at?new Date(log.created_at):null;
+    var dateStr=dt?dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'';
+    var timeStr=dt?dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):'';
+    return '<div class="log-entry '+lvl+'">'
+      +'<span class="log-level '+lvl+'">'+lvl+'</span>'
+      +'<div class="log-body">'
+      +'<div class="log-msg">'+escH(log.message||'')+'</div>'
+      +(log.detail?'<div class="log-detail">'+escH(log.detail)+'</div>':'')
+      +(log.ip&&log.ip!=='127.0.0.1'&&log.ip!=='::1'?'<div class="log-ip">IP: '+escH(log.ip)+'</div>':'')
+      +'</div>'
+      +'<div class="log-time"><div>'+dateStr+'</div><div style="font-weight:600">'+timeStr+'</div></div>'
+      +'<button class="log-copy-btn" onclick="copyLog('+i+')" title="Copy">&#x2398;</button>'
+      +'</div>';
+  }).join('');
+}
+
+function copyLog(i){
+  var log=currentLogs[i];
+  if(!log)return;
+  var text='['+((log.level||'').toUpperCase())+'] '+(log.created_at||'')+' | '+(log.message||'')+(log.detail?' | '+log.detail:'')+(log.ip?' | IP: '+log.ip:'');
+  navigator.clipboard.writeText(text).then(function(){showToast('Log copie');});
+}
+
+function copyAllLogs(){
+  if(!currentLogs.length){showToast('Aucun log a copier','error');return;}
+  var src=currentLogTab==='form'?'FORM':'DASHBOARD';
+  var lines=['CYBERSTORM.MU - LOGS '+src,'Generated: '+new Date().toLocaleString('en-GB'),'─────────────────────────────────────────────────────'];
+  currentLogs.forEach(function(log){
+    lines.push('['+((log.level||'').toUpperCase())+'] '+(log.created_at||'')+' | '+(log.message||'')+(log.detail?' | '+log.detail:'')+(log.ip?' | IP: '+log.ip:''));
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(function(){
+    var b=document.getElementById('btn-copy-all-logs');
+    b.textContent='Done!';b.classList.add('copied');
+    setTimeout(function(){b.textContent='Copy All';b.classList.remove('copied');},2500);
+  });
+}
+
+function clearLogs(){
+  if(!confirm('Effacer tous les logs '+( currentLogTab==='form'?'du formulaire':'du dashboard')+'?'))return;
+  fetch('/api/logs?source='+currentLogTab,{method:'DELETE',headers:apiHeaders()})
+    .then(function(r){if(r.ok){currentLogs=[];renderLogs();showToast('Logs effaces');}else{showToast('Erreur','error');}})
+    .catch(function(){showToast('Erreur','error');});
+}
+
 </script>
 </body>
 </html>
